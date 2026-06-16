@@ -365,7 +365,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
                         )
-                        if img is None:
+                        if not img:
                             logger.warning(
                                 (
                                     "Tiled screenshot failed, "
