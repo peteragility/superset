@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 from flask import g
 from jwt import encode
+from jwt.warnings import InsecureKeyLengthWarning
 from pytest import fixture, mark, raises  # noqa: PT013
 
 from superset import security_manager
@@ -32,7 +34,7 @@ from superset.async_events.cache_backend import (
     RedisSentinelCacheBackend,
 )
 
-JWT_TOKEN_SECRET = "some_secret"  # noqa: S105
+JWT_TOKEN_SECRET = "some_secret_that_is_at_least_32_bytes!"  # noqa: S105
 JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"  # noqa: S105
 
 
@@ -233,3 +235,20 @@ def test_submit_explore_json_job_as_guest_user(
     )
 
     assert "guest_token" not in job_meta
+
+
+def test_jwt_secret_meets_minimum_key_length(async_query_manager):
+    """JWT encode/decode must not trigger InsecureKeyLengthWarning (PyJWT >= 2.13)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", InsecureKeyLengthWarning)
+        token = encode(
+            {
+                "channel": "ch",
+                "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            },
+            JWT_TOKEN_SECRET,
+            algorithm="HS256",
+        )
+        request = Mock()
+        request.cookies = {JWT_TOKEN_COOKIE_NAME: token}
+        async_query_manager.parse_channel_id_from_request(request)
