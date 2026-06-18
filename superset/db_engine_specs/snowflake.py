@@ -25,7 +25,6 @@ from urllib import parse
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from flask import current_app as app
 from flask_babel import gettext as __
@@ -463,7 +462,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             p_key = serialization.load_pem_private_key(
                 key,
                 password=password,
-                backend=default_backend(),
             )
             pkb = p_key.private_bytes(
                 encoding=serialization.Encoding.DER,
