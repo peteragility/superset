@@ -437,7 +437,7 @@ def test_encode_decode_oauth2_state(
     mocker.patch(
         "flask.current_app.config",
         {
-            "SECRET_KEY": "test-secret-key",
+            "SECRET_KEY": "test-secret-key-at-least-32-bytes!!",
             "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
         },
     )
