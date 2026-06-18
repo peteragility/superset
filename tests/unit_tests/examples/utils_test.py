@@ -204,3 +204,70 @@ def test_load_examples_from_configs_defaults(
         force_data=False,
     )
     mock_command.run.assert_called_once()
+
+
+@patch("superset.examples.utils.ImportExamplesCommand")
+def test_load_configs_from_directory_uses_safe_yaml_loader(
+    mock_command_cls: MagicMock,
+) -> None:
+    """load_configs_from_directory() must use yaml.safe_load (not yaml.load).
+
+    Using yaml.load with an unsafe Loader (yaml.Loader) allows arbitrary
+    code execution during deserialization (Bandit B506). The metadata file
+    only contains simple scalar values, so yaml.safe_load is sufficient.
+    """
+    from superset.examples.utils import load_configs_from_directory
+
+    mock_command = MagicMock()
+    mock_command_cls.return_value = mock_command
+
+    with TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        # Create a metadata.yaml with a "type" key to exercise the removal logic
+        (root / "metadata.yaml").write_text("type: dashboard\nversion: 1.0.0\n")
+
+        with patch(
+            "superset.examples.utils.yaml.safe_load", wraps=yaml.safe_load
+        ) as mock_safe_load:
+            load_configs_from_directory(root)
+
+        # Verify yaml.safe_load was called with the metadata content
+        mock_safe_load.assert_called_once_with("type: dashboard\nversion: 1.0.0\n")
+
+    # Verify the "type" key was stripped from metadata before import
+    cmd_contents = mock_command_cls.call_args[0][0]
+    loaded_metadata = yaml.safe_load(cmd_contents["metadata.yaml"])
+    assert "type" not in loaded_metadata
+    assert loaded_metadata["version"] == "1.0.0"
+
+
+def test_load_configs_from_directory_does_not_use_unsafe_yaml_load() -> None:
+    """Verify the source code does not contain yaml.load (Bandit B506).
+
+    This is a static assertion: if someone reverts the safe_load change,
+    this test will catch it without needing the full runtime environment.
+    """
+    import ast
+
+    # Resolve path relative to the test file location (repo root is 3 levels up)
+    utils_path = (
+        Path(__file__).resolve().parents[3] / "superset" / "examples" / "utils.py"
+    )
+    assert utils_path.exists(), f"Source file not found: {utils_path}"
+
+    source = utils_path.read_text()
+    tree = ast.parse(source)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            # Check for yaml.load(...) calls
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "load"
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "yaml"
+            ):
+                raise AssertionError(
+                    f"Found yaml.load() at line {node.lineno}. "
+                    "Use yaml.safe_load() instead (Bandit B506)."
+                )
