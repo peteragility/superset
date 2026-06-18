@@ -66,7 +66,6 @@ import markdown as md
 import nh3
 import pandas as pd
 import sqlalchemy as sa
-from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from flask import current_app as app, g, request
 from flask_appbuilder.security.sqla.models import User
@@ -1541,7 +1540,7 @@ def parse_ssl_cert(certificate: str) -> Certificate:
     :raises CertificateException: If certificate is not valid/unparseable
     """
     try:
-        return load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
+        return load_pem_x509_certificate(certificate.encode("utf-8"))
     except ValueError as ex:
         raise CertificateException("Invalid certificate") from ex
 
