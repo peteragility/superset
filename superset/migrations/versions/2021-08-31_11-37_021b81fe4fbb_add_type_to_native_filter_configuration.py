@@ -63,8 +63,12 @@ def upgrade():
             continue
         try:
             json_meta = json.loads(dashboard.json_metadata)
-        except:  # noqa: E722
-            logger.exception("[AddTypeToNativeFilter] Error loading json_metadata")
+        except ValueError:
+            logger.exception(
+                "[AddTypeToNativeFilter] Error loading json_metadata"
+                " for Dashboard<pk:%s>",
+                dashboard.id,
+            )
             continue
 
         if "native_filter_configuration" not in json_meta:
@@ -103,8 +107,12 @@ def downgrade():
             continue
         try:
             json_meta = json.loads(dashboard.json_metadata)
-        except:  # noqa: E722
-            logger.exception("[RemoveTypeToNativeFilter] Error loading json_metadata")
+        except ValueError:
+            logger.exception(
+                "[RemoveTypeToNativeFilter] Error loading json_metadata"
+                " for Dashboard<pk:%s>",
+                dashboard.id,
+            )
             continue
 
         if "native_filter_configuration" not in json_meta:
