@@ -181,3 +181,13 @@ def test_md5_vs_sha256_different_outputs():
     assert len(md5_result) == 32
     # SHA-256 produces 64 character hex string
     assert len(sha256_result) == 64
+
+
+def test_md5_passes_usedforsecurity_false():
+    """Test that MD5 hashing passes usedforsecurity=False to avoid Bandit B324."""
+    with patch("superset.utils.hashing.get_hash_algorithm", return_value="md5"):
+        with patch("superset.utils.hashing.hashlib") as mock_hashlib:
+            mock_hash = mock_hashlib.md5.return_value
+            mock_hash.hexdigest.return_value = "abc123"
+            hash_from_str("test")
+            mock_hashlib.md5.assert_called_once_with(b"test", usedforsecurity=False)
