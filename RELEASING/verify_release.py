@@ -141,7 +141,7 @@ def get_gpg_info(filename: str) -> tuple[Optional[str], Optional[str]]:
 def verify_key(key: str, email: Optional[str]) -> str:
     """Fetch the KEYS file and verify if the RSA/EDDSA key and email match."""
     url = "https://downloads.apache.org/superset/KEYS"
-    response = requests.get(url)  # noqa: S113
+    response = requests.get(url, timeout=30)
     if response.status_code == 200:
         if key not in response.text:
             return "RSA/EDDSA key not found on KEYS page"
