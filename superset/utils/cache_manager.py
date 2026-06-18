@@ -72,7 +72,7 @@ class ConfigurableHashMethod:
         hash_func = _HASH_METHODS.get(algorithm)
         if hash_func is None:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
-        return hash_func(data)
+        return hash_func(data, usedforsecurity=False)
 
 
 # Singleton instance to use as default hash_method
